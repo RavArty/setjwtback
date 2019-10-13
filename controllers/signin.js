@@ -1,22 +1,50 @@
-const handleSignin = (req, res, db, bcrypt) => {
+const jwt = require('jsonwebtoken');
+
+const signToken = (username) => {
+  const jwtPayload = { username };
+  return jwt.sign(jwtPayload, 'JWT_SECRET_KEY', { expiresIn: '2 days'});
+};
+
+const createSession = (user) => {
+  const { email } = user;
+  const token = signToken(email);
+  return {success: 'true', userEmail: email, token}
+  // return setToken(token, id)
+  //   .then(() => {
+  //     return { success: 'true', userId: id, token, user }
+  //   })
+  //   .catch(console.log);
+};
+
+const handleSignin = (db, bcrypt, req, res) => {
   const { email, password } = req.body;
-  console.log(email)
+
   if (!email || !password) {
-    return res.status(400).json('incorrect form submission');
+    return Promise.reject('incorrect form submission');
   }
-  db.select('email', 'password').from('users')
+  return db.select('email', 'password').from('users')
     .where('email', '=', email)
     .then(data => {
       const isValid = bcrypt.compareSync(password, data[0].password);
       if (isValid) {
-        return res.json(data[0])
+        return data[0]
       } else {
-        res.status(400).json('wrong credentials')
+        Promise.reject('wrong credentials')
       }
     })
-    .catch(err => res.status(400).json('wrong credentials'))
+    .catch(err => err)
+}
+
+const signinAuthentication = (db, bcrypt) => (req, res) => {
+  //in case jwt token send in authorization token
+  const { authorization } = req.headers;
+  return authorization ? getAuthTokenId(req, res)
+    : handleSignin(db, bcrypt, req, res)
+    .then(data => data.email ? createSession(data) : Promise.reject(data))
+    .then(session => res.json(session))
+    .catch(err => res.status(400).json(err));
 }
 
 module.exports = {
-  handleSignin: handleSignin
+  signinAuthentication: signinAuthentication
 }

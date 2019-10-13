@@ -30,7 +30,7 @@ app.get('/', (req, res) => {res.send('working')})
 //-------------------------------------------------------------------------
 app.post('/register', (req, res) => {register.registerUser(req, res, db, bcrypt, saltRounds)})
 //-------------------------------------------------------------------------
-app.post('/signin', (req, res) => {signin.handleSignin(req, res, db, bcrypt)})
+app.post('/signin', signin.signinAuthentication(db, bcrypt))
 //-------------------------------------------------------------------------
 app.listen(3000, ()=> {
   console.log('app is running on port 3000');
