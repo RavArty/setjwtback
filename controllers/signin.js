@@ -14,7 +14,7 @@ const createSession = (user) => {
   const token = signToken(email);
   return setToken(token, email)
     .then(() => {
-      return { success: 'true', userEmail: email, token }
+      return { success: 'true', email: email, token }
     })
     .catch(console.log);
 };
@@ -36,6 +36,15 @@ const handleSignin = (db, bcrypt, req, res) => {
       }
     })
     .catch(err => err)
+}
+const getAuthTokenId = (req, res) => {
+  const { authorization } = req.headers;
+  return redisClient.get(authorization, (err, reply) => {
+    if (err || !reply) {
+      return res.status(401).send('Unauthorized');
+    }
+    return res.json({email: reply})
+  });
 }
 
 const signinAuthentication = (db, bcrypt) => (req, res) => {
